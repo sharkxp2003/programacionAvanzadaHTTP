@@ -25,7 +25,7 @@ int readLine(int s, char *line, int *result_size) {
         acum += size;
         if(line[acum-1] == '\n' && line[acum-2] == '\r') {
             break;
-        } 
+        }
     }
 
     *result_size = acum;
@@ -57,23 +57,80 @@ int writeLine(int s, char *line, int total_size) {
     return 0;
 }
 
+/**************DESARROLLO***************/
+
+    /*
+    Toma por parámetro un comando y lo compara con los comandos HTTP
+    devolviendo un valor (int) en cada caso.
+    6 LOC
+    */
+
+    int commandParser(char * command) {
+      if (!strcmp(command,"GET")) return 0;
+      if (!strcmp(command,"PUT")) return 1;
+      if (!strcmp(command,"POST")) return 2;
+      if (!strcmp(command,"HEAD")) return 3;
+      return -1;
+    }
+
+    /*
+      commandExecutor toma como parámetro un valor numérico
+      para luego hacer un fetch a través de un switch del método
+      a ejecutar.
+      6 LOC
+    */
+    void commandExecutor(int value, char * command) {
+      switch (value) {
+        case 0: printf("%s\n","Ejecutar pasos de GET");break;
+        case 1: printf("%s\n","Ejecutar pasos de PUT");break;
+        case 2: printf("%s\n","Ejecutar pasos de POST");break;
+        case 3: printf("%s\n","Ejecutar pasos de HEAD");break;
+      }
+    }
+/*********FIN*DESARROLLO***********/
+
 int serve(int s) {
     char command[MSGSIZE];
     int size, r, nlc = 0, fd, read_bytes;
-
     // Lee lo que pide el cliente
     while(1) {
         r = readLine(s, command, &size);
+        //printf("Valor bruto de size: %d -> [%c] [%d] [%d]\n",size,command[0],command[1],command[2]);
         command[size-2] = 0;
         size-=2;
-        printf("[%s]\n", command);
+        //printf("Valor nomial de size: %d\n",size);
+        //printf("[%s - %d - %c]\n", command,size,command[size-1]);
+        printf("[%s]\n",command);
+
+/**************DESARROLLO***************/
+/*=========================================*/
+          int aux_value = commandParser(command);
+          commandExecutor(aux_value, command);
+/*=========================================*/
+
+        /*
+          extractParameters toma el comando y extrae aquellos parámetros
+          necesarios para la interpretación de la cabacera HTTP
+        */
+        void * extractParameters (char * command) {
+
+
+        }
+
+
+
+/*********FIN*DESARROLLO***********/
+
+
+
         if(command[size-1] == '\n' && command[size-2] == '\r') {
+          printf("Sí\n");
             break;
         }
-	// Esto esta mal mal mal 
-	if(strlen(command) == 0) {
-	    break;
-	}
+    	// Esto esta mal mal mal
+    	if(strlen(command) == 0) {
+    	    break;
+    	}
     }
     sleep(1);
 
@@ -91,7 +148,7 @@ int serve(int s) {
 
     sprintf(command, "\r\n");
     writeLine(s, command, strlen(command));
-
+/*
     FILE *fin = fopen("mainiso_forcampus.jpg", "r");
 	FILE *fout = fdopen(s, "w");
 
@@ -109,7 +166,7 @@ int serve(int s) {
 		suma += size;
 		if (suma >= 29936) break;
 	}
-
+*/
 
 
     sync();
