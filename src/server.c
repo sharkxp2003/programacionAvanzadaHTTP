@@ -47,10 +47,34 @@ int writeLine(int s, char *line, int total_size) {
 /**************DESARROLLO***************/
 
 /*
-  7 métodos
- 65 LOC
- 9.4 LOC media
+  9 métodos
+ 134 LOC
+ 14.8 LOC media
 */
+
+
+    /*
+
+    */
+    char * strext(char * string) {
+      int size = 0;
+      if (string != NULL) {
+        size = strlen(string);
+        while (string[size]!='.' && size != 1) size--;
+        return substr(string,size+1,strlen(string)-size);
+      }
+      return NULL;
+    }
+
+
+    char * fetchMIME(char * extension) {
+      int i=0;
+      char * mime = malloc(sizeof(char)*40);
+      while (strcmp(mapaMimeTypes[i],extension) != 0 && i<84) i++;
+      sprintf(mime,"%s",mapaMimeTypes[i+1]);
+      return mime;
+    }
+
 
 
     /*
@@ -94,34 +118,42 @@ int writeLine(int s, char *line, int total_size) {
       return substr(string,0,i);
     }
 
-
-    void enviarHeader(struct cabecera header,
-       char * buffer,enum mensajesHTTP status) {
-
-    }
-
+    /*
+      24 LOC
+    */
     void * leer (char * path) {
       int size;
       struct data * dataLectura = malloc(sizeof(struct data));
       FILE * fp = NULL;
-      fp = fopen(path,"r");
+      fp = fopen(path,"rb");
+      size_t result;
       if (fp != NULL) {
+        dataLectura->extension = malloc(sizeof(char)*40);
+        sprintf(dataLectura->extension,"%s",fetchMIME(strext(path)));
         fseek(fp,0,SEEK_END);
         size = ftell(fp);
         rewind(fp);
         dataLectura->buffer = malloc(sizeof(char)*size);
         dataLectura->size = size;
-        fread(dataLectura->buffer,1,size,fp);
+        if (strcmp(dataLectura->extension,"image/jpeg") == 0) {
+          //fread(dataLectura->buffer,1,size,fp);
+
+
+
+        } else fread(dataLectura->buffer,1,size-1,fp);
         dataLectura->status = ok;
+
+        sprintf(dataLectura->extension,"%s",fetchMIME(strext(path)));
         fclose(fp);
      } else {
-        fp = fopen("./root/cabecerasHTTP/not_found.html","r");
+        fp = fopen("./root/cabecerasHTTP/not_found.html","rb");
         dataLectura->status = not_found;
         fseek(fp,0,SEEK_END);
         size = ftell(fp);
         rewind(fp);
         dataLectura->buffer = malloc(sizeof(char)*size);
         dataLectura->size = size;
+        sprintf(dataLectura->extension,"%s",fetchMIME(strext("./root/cabecerasHTTP/not_found.html")));
         fread(dataLectura->buffer,1,size,fp);
         }
       return (void *) dataLectura;
@@ -150,7 +182,10 @@ int writeLine(int s, char *line, int total_size) {
       23 LOC
 
     */
+/*
 
+  20 LOC
+*/
 void * openAndReadFile(char * uri, char *root) {
   char * fullPath = NULL;
   char * path = NULL;
@@ -181,7 +216,7 @@ void * openAndReadFile(char * uri, char *root) {
       http GET desde un cliente. Separa la línea del procedimiento
       del resto de la cabecera http. Extrae de la línea la uri y
       buscar en el directorio raíz los recursos que se piden.
-      9 LOC
+      10 LOC
     */
     void * HTTPGET (char * command) {
       char * uri = NULL;
@@ -195,13 +230,16 @@ void * openAndReadFile(char * uri, char *root) {
       aux = openAndReadFile(uri,root);
       return aux;
     }
-
+    /*
+      19 LOC
+    */
     void configurarHeader(struct cabecera * header, struct data * dataLectura) {
       if (dataLectura->status == not_found) {
         header->resultado = malloc(sizeof(char)*30);
         sprintf(header->resultado,"HTTP/1.0 %u Not found\r\n",dataLectura->status);
         header->server = "Server: Mac OS X PA_Server\r\n";
-        header->content_type= "Content-Type: text/html\r\n";
+        header->content_type = malloc(sizeof(char)*56);
+        sprintf(header->content_type,"Content-Type: %s\r\n",dataLectura->extension);
         header->content_length = malloc(sizeof(char)*6);
         sprintf(header->content_length,"Content-Length: %d\r\n",dataLectura->size);
         header->cuerpo = malloc(sizeof(char *)*dataLectura->size);
@@ -211,11 +249,13 @@ void * openAndReadFile(char * uri, char *root) {
         header->resultado = malloc(sizeof(char)*30);
         sprintf(header->resultado,"HTTP/1.0 %u ok\r\n",dataLectura->status);
         header->server = "Server: Mac OS X PA_Server\r\n";
-        header->content_type= "Content-Type: text/html\r\n";
+        header->content_type = malloc(sizeof(char)*56);
+        sprintf(header->content_type,"Content-Type: %s\r\n",dataLectura->extension);
         header->content_length = malloc(sizeof(char)*6);
         sprintf(header->content_length,"Content-Length: %d\r\n",dataLectura->size);
-        header->cuerpo = malloc(sizeof(char *)*dataLectura->size);
-        sprintf(header->cuerpo,"%s\r\n",dataLectura->buffer);
+        memcpy(header->cuerpo,dataLectura->buffer,dataLectura->size);
+        //header->cuerpo = malloc(sizeof(char *)*dataLectura->size);
+        //sprintf(header->cuerpo,"%s\r\n",dataLectura->buffer);
       //  free(dataLectura->buffer);//OJO
       }
     }
@@ -224,16 +264,23 @@ void * openAndReadFile(char * uri, char *root) {
       commandExecutor toma como parámetro un valor numérico
       para luego hacer un fetch a través de un switch del método
       a ejecutar.
-      6 LOC
+      11 LOC
     */
     void * commandExecutor(int value, char * command) {
       struct cabecera * header = malloc(sizeof(struct cabecera));
       struct data * dataLectura;
-
       switch (value) {
         case 0://GET
         dataLectura = HTTPGET(command);
         configurarHeader(header,dataLectura);
+        printf("%s",header->resultado);
+        printf("%s",header->server);
+        printf("%s",header->content_type);
+        printf("%s",header->content_length);
+        printf("%s",header->cuerpo);
+        //char * prueba = malloc(sizeof(char)*100);
+        //sprintf(prueba,"%s",strext("./root/cabecerasHTTP/not_found.jpeg"));
+        //printf("%s\n",fetchMIME(prueba));
          break;
         case 1: printf("%s\n","Ejecutar pasos de PUT");break;
         case 2: printf("%s\n","Ejecutar pasos de POST");break;
@@ -257,30 +304,40 @@ int serve(int s) {
         if (i==0) {
           operacion = commandParser(command);
           response = commandExecutor(operacion, command);
-          writeLine(s,response->resultado,strlen(response->resultado));
-          writeLine(s,response->server,strlen(response->server));
-          writeLine(s,response->content_type,strlen(response->content_type));
-          writeLine(s,response->content_length,strlen(response->content_length));
-          writeLine(s,response->cuerpo,strlen(response->cuerpo));
         }
         /*=========================================*/
 
         /*********FIN*DESARROLLO***********/
 
-
+        i++;
         command[size-2] = 0;
         size-=2;
         if(command[size-1] == '\n' && command[size-2] == '\r') {
             break;
         }
-        /*
-    	// Esto esta mal mal mal
-    	if(strlen(command) == 0) {
-    	    break;
-    	}
-      */i++;
+
     }
     sleep(1);
+    writeLine(s,response->resultado,strlen(response->resultado));
+    writeLine(s,response->server,strlen(response->server));
+    writeLine(s,response->content_type,strlen(response->content_type));
+    writeLine(s,response->content_length,strlen(response->content_length));
+    writeLine(s,"\r\n",strlen("\r\n"));
+    if (strcmp(response->content_type,"Content-Type: image/jpeg\r\n") == 0) {
+      FILE *fin = fopen("./root/imagen.jpeg","r");
+      FILE *fout = fdopen(s, "w");
+      char file[65340];
+      int suma = 0;
+      size = fread(file, 1,65340, fin);
+      printf("Archivo: %d\n", size);
+      while( (size=write(s, &file[suma],size)) > 0) {
+        suma += size;
+        if (suma >= 65340) break;
+      }
+    } else {
+        writeLine(s,response->cuerpo,strlen(response->cuerpo));
+
+  }
 
 
 

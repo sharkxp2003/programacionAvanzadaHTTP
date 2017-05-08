@@ -34,10 +34,56 @@
 
     struct data {
       enum mensajesHTTP status;
+      char * extension;
       char * buffer;
       int size;
     };
 
+    char *mapaMimeTypes[85]={
+    	"au","audio/basic",
+    	"avi","video/avi",
+    	"bmp","image/bmp",
+    	"bz2","application/x-bzip2",
+    	"css","text/css",
+    	"dtd","application/xml-dtd",
+    	"doc","application/msword",
+    	"exe","application/octet-stream",
+    	"gif","image/gif",
+    	"gz","application/x-gzip",
+    	"hqx","application/mac-binhex40",
+     	"html","text/html",
+    	"jar","application/java-archive",
+    	"jpg","image/jpeg",
+      "jpeg","image/jpeg",
+    	"js","application/x-javascript",
+    	"midi","audio/x-midi",
+    	"mp3","audio/mpeg",
+    	"mpeg" "video/mpeg",
+    	"ogg","audio/vorbis",
+    	"pdf","application/pdf",
+    	"pl","application/x-perl",
+    	"png","image/png",
+    	"ppt","application/vnd.ms-powerpoint",
+    	"ps","application/postscript",
+    	"qt","video/quicktime",
+    	"ra","audio/x-pn-realaudio",
+    	"ram","audio/x-pn-realaudio",
+    	"rdf","application/rdf",
+    	"rtf","application/rtf",
+    	"sgml","text/sgml",
+    	"sit","application/x-stuffit",
+    	"svg","image/svg+xml",
+    	"swf","application/x-shockwave-flash",
+    	"tar.gz","application/x-tar",
+    	"tgz","application/x-tar",
+    	"tiff","image/tiff",
+    	"tsv","text/tab-separated-values",
+    	"txt","text/plain",
+    	"wav","audio/wav",
+    	"xls","application/vnd.ms-excel",
+    	"xml","application/xml",
+    	"zip","application/zip"
+    };
 
   int readLine(int s, char *line, int *result_size);
   int writeLine(int s, char *line, int total_size);
@@ -49,7 +95,6 @@
   void * HTTPGET (char * command);
   void * commandExecutor(int value, char * command);
   int serve(int s);
-  void enviarHeader(struct cabecera header, char * buffer, enum mensajesHTTP status);
   void configurarHeader(struct cabecera * header, struct data * dataLectura);
   void * leer (char * path);
 
