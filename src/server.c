@@ -133,12 +133,12 @@ int writeLine(int s, char *line, int total_size) {
         fseek(fp,0,SEEK_END);
         size = ftell(fp);
         rewind(fp);
-        dataLectura->buffer = malloc(sizeof(char)*size);
         dataLectura->size = size;
         if (strcmp(dataLectura->extension,"image/jpeg") == 0) {
-          //fread(dataLectura->buffer,1,size,fp);
-
-
+          dataLectura->buffer = malloc(sizeof(char)*size);
+          char file[size];
+          size = fread(file,1,size,fp);
+          memcpy(dataLectura->buffer,file,size);
 
         } else fread(dataLectura->buffer,1,size-1,fp);
         dataLectura->status = ok;
@@ -253,8 +253,9 @@ void * openAndReadFile(char * uri, char *root) {
         sprintf(header->content_type,"Content-Type: %s\r\n",dataLectura->extension);
         header->content_length = malloc(sizeof(char)*6);
         sprintf(header->content_length,"Content-Length: %d\r\n",dataLectura->size);
+        header->cuerpo = malloc(sizeof(char)*dataLectura->size);
         memcpy(header->cuerpo,dataLectura->buffer,dataLectura->size);
-        //header->cuerpo = malloc(sizeof(char *)*dataLectura->size);
+
         //sprintf(header->cuerpo,"%s\r\n",dataLectura->buffer);
       //  free(dataLectura->buffer);//OJO
       }
