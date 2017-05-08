@@ -60,18 +60,106 @@ int writeLine(int s, char *line, int total_size) {
 /**************DESARROLLO***************/
 
     /*
+      Devuelve un substring de un string dado con una longitud
+      especificada
+      5 LOC
+    */
+    char * substr(char * cadena, int comienzo, int longitud) {
+      if (longitud == 0) longitud = strlen(cadena)-comienzo-1;
+      char * nuevo = (char *)malloc(sizeof(char) * longitud);
+      strncpy(nuevo, cadena+comienzo,longitud);
+      return nuevo;
+    }
+
+
+
+    /*
     Toma por parámetro un comando y lo compara con los comandos HTTP
     devolviendo un valor (int) en cada caso.
     6 LOC
     */
 
     int commandParser(char * command) {
-      if (!strcmp(command,"GET")) return 0;
-      if (!strcmp(command,"PUT")) return 1;
-      if (!strcmp(command,"POST")) return 2;
-      if (!strcmp(command,"HEAD")) return 3;
+      char * aux = NULL;
+      aux = substr(command,0,4);
+      if (!strcmp(aux,"GET ")) return 0;
+      if (!strcmp(aux,"PUT ")) return 1;
+      if (!strcmp(aux,"POST")) return 2;
+      if (!strcmp(aux,"HEAD")) return 3;
       return -1;
     }
+
+    /*
+    Devuelve el substring hasta la primera aparición del
+    carácter c en el char * string
+    5 LOC
+    */
+    char * substrUntilChar(char * string, char c) {
+      int i = 0;
+      while (string[i] != c) {
+        i++;
+      }
+      return substr(string,0,i);
+    }
+
+    int leer (char * path) {
+      char c;
+      FILE * fp = NULL;
+      fp = fopen(path,"r");
+      if (fp == NULL) return -1;
+        while (!feof(fp)){
+          c = fgetc(fp);
+          printf("%c",c);
+      } printf("\n");
+      fclose(fp);
+      return 0;
+    }
+
+    void openAndReadFile(char * uri, char * root) {
+      FILE * fp = NULL;
+      char * fullPath = NULL;
+      char * path = NULL;
+      char * uri2 = NULL;
+      int a,b;
+
+      if (strcmp(uri,"/")==0) {
+        leer("./root/index.html");
+      } else {
+        a = strlen(substr(uri,1,strlen(uri)-1));
+        uri2 = malloc(sizeof(char)*a);
+        strcpy(uri2,substr(uri,1,strlen(uri)-1));
+        b = strlen(root);
+        path = malloc(sizeof(char)*b);
+        strcpy(path,root);
+        fullPath = malloc(sizeof(char)*a+b);
+        sprintf(fullPath,"%s%s",path,uri2);
+        int c = leer(fullPath);
+        printf("%d\n",c);
+        if (c == -1) {
+          printf ("Error 404");
+        }
+          //Error 404
+      }
+      free(path); free(uri2); free(fullPath);
+    }
+
+
+
+    void HTTPGET (char * command) {
+      char * uri = NULL;
+      char * linea = NULL;
+      int http_command_size = 0, command_size = 0, proto_size = 9;
+      char * root = "./root/";
+
+      linea = substrUntilChar(command,'\r');
+      http_command_size = strlen("GET ");//Tamaño del comando http
+      uri = substr(linea,http_command_size,strlen(linea)-http_command_size-proto_size);
+      openAndReadFile(uri,root);
+
+    }
+
+
+
 
     /*
       commandExecutor toma como parámetro un valor numérico
@@ -80,8 +168,11 @@ int writeLine(int s, char *line, int total_size) {
       6 LOC
     */
     void commandExecutor(int value, char * command) {
+
       switch (value) {
-        case 0: printf("%s\n","Ejecutar pasos de GET");break;
+        case 0://GET
+        HTTPGET(command);
+         break;
         case 1: printf("%s\n","Ejecutar pasos de PUT");break;
         case 2: printf("%s\n","Ejecutar pasos de POST");break;
         case 3: printf("%s\n","Ejecutar pasos de HEAD");break;
@@ -91,31 +182,26 @@ int writeLine(int s, char *line, int total_size) {
 
 int serve(int s) {
     char command[MSGSIZE];
-    int size, r, nlc = 0, fd, read_bytes;
+    int size, r, nlc = 0, fd, read_bytes, operacion;
     // Lee lo que pide el cliente
     while(1) {
         r = readLine(s, command, &size);
-        //printf("Valor bruto de size: %d -> [%c] [%d] [%d]\n",size,command[0],command[1],command[2]);
+
         command[size-2] = 0;
         size-=2;
-        //printf("Valor nomial de size: %d\n",size);
-        //printf("[%s - %d - %c]\n", command,size,command[size-1]);
-        printf("[%s]\n",command);
+
+
+
 
 /**************DESARROLLO***************/
 /*=========================================*/
-          int aux_value = commandParser(command);
-          commandExecutor(aux_value, command);
+          operacion = commandParser(command);
+          commandExecutor(operacion, command);
 /*=========================================*/
 
-        /*
-          extractParameters toma el comando y extrae aquellos parámetros
-          necesarios para la interpretación de la cabacera HTTP
-        */
-        void * extractParameters (char * command) {
 
 
-        }
+
 
 
 
@@ -124,13 +210,14 @@ int serve(int s) {
 
 
         if(command[size-1] == '\n' && command[size-2] == '\r') {
-          printf("Sí\n");
             break;
         }
+        /*
     	// Esto esta mal mal mal
     	if(strlen(command) == 0) {
     	    break;
     	}
+      */
     }
     sleep(1);
 
