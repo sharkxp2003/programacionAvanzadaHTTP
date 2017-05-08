@@ -6,7 +6,6 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
-
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -14,6 +13,9 @@
 #define PORT 80
 #define SIZE 8
 #define MSGSIZE 1024
+
+
+
 
 int readLine(int s, char *line, int *result_size) {
     int acum=0, size;
@@ -59,6 +61,13 @@ int writeLine(int s, char *line, int total_size) {
 
 /**************DESARROLLO***************/
 
+/*
+  7 métodos
+ 65 LOC
+ 9.4 LOC media
+*/
+
+
     /*
       Devuelve un substring de un string dado con una longitud
       especificada
@@ -70,8 +79,6 @@ int writeLine(int s, char *line, int total_size) {
       strncpy(nuevo, cadena+comienzo,longitud);
       return nuevo;
     }
-
-
 
     /*
     Toma por parámetro un comando y lo compara con los comandos HTTP
@@ -102,6 +109,10 @@ int writeLine(int s, char *line, int total_size) {
       return substr(string,0,i);
     }
 
+    /*
+      Lee desde una ruta un fichero y lo muestra por pantalla
+      11 LOC
+    */
     int leer (char * path) {
       char c;
       FILE * fp = NULL;
@@ -115,6 +126,11 @@ int writeLine(int s, char *line, int total_size) {
       return 0;
     }
 
+    /*
+      Concatena la uri del cliente con el path simbólico donde se
+      encuentra la carpeta que contiene los ficheros html y demás.
+      23 LOC
+    */
     void openAndReadFile(char * uri, char * root) {
       FILE * fp = NULL;
       char * fullPath = NULL;
@@ -133,6 +149,7 @@ int writeLine(int s, char *line, int total_size) {
         strcpy(path,root);
         fullPath = malloc(sizeof(char)*a+b);
         sprintf(fullPath,"%s%s",path,uri2);
+        printf("%s\n",fullPath);
         int c = leer(fullPath);
         printf("%d\n",c);
         if (c == -1) {
@@ -144,22 +161,23 @@ int writeLine(int s, char *line, int total_size) {
     }
 
 
-
+    /*
+      Método que se invoca tras reconocer que se llama al método
+      http GET desde un cliente. Separa la línea del procedimiento
+      del resto de la cabecera http. Extrae de la línea la uri y
+      buscar en el directorio raíz los recursos que se piden.
+      9 LOC
+    */
     void HTTPGET (char * command) {
       char * uri = NULL;
       char * linea = NULL;
       int http_command_size = 0, command_size = 0, proto_size = 9;
       char * root = "./root/";
-
       linea = substrUntilChar(command,'\r');
       http_command_size = strlen("GET ");//Tamaño del comando http
       uri = substr(linea,http_command_size,strlen(linea)-http_command_size-proto_size);
       openAndReadFile(uri,root);
-
     }
-
-
-
 
     /*
       commandExecutor toma como parámetro un valor numérico
@@ -190,24 +208,13 @@ int serve(int s) {
         command[size-2] = 0;
         size-=2;
 
-
-
-
 /**************DESARROLLO***************/
 /*=========================================*/
           operacion = commandParser(command);
           commandExecutor(operacion, command);
 /*=========================================*/
 
-
-
-
-
-
-
 /*********FIN*DESARROLLO***********/
-
-
 
         if(command[size-1] == '\n' && command[size-2] == '\r') {
             break;
