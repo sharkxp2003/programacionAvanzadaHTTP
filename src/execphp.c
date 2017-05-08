@@ -1,9 +1,4 @@
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-#define READ 0
-#define WRITE 0
+#include "../lib/execphp.h"
 
 int main() {
     int message_fd[2][2];

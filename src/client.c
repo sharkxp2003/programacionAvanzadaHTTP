@@ -1,13 +1,4 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <string.h>
-
-#define SIZE 32
-#define PORT 80
+#include "../lib/client.h"
 
 int main() {
     int sd, size;

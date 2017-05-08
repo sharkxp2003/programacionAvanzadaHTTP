@@ -1,19 +1,4 @@
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <string.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-
-#define PORT 80
-#define SIZE 8
-#define MSGSIZE 1024
-
+#include "../lib/server.h"
 
 
 
@@ -109,11 +94,44 @@ int writeLine(int s, char *line, int total_size) {
       return substr(string,0,i);
     }
 
+
+    void enviarHeader(struct cabecera header,
+       char * buffer,enum mensajesHTTP status) {
+
+    }
+
+    void * leer (char * path) {
+      int size;
+      struct data * dataLectura = malloc(sizeof(struct data));
+      FILE * fp = NULL;
+      fp = fopen(path,"r");
+      if (fp != NULL) {
+        fseek(fp,0,SEEK_END);
+        size = ftell(fp);
+        rewind(fp);
+        dataLectura->buffer = malloc(sizeof(char)*size);
+        dataLectura->size = size;
+        fread(dataLectura->buffer,1,size,fp);
+        dataLectura->status = ok;
+        fclose(fp);
+     } else {
+        fp = fopen("./root/cabecerasHTTP/not_found.html","r");
+        dataLectura->status = not_found;
+        fseek(fp,0,SEEK_END);
+        size = ftell(fp);
+        rewind(fp);
+        dataLectura->buffer = malloc(sizeof(char)*size);
+        dataLectura->size = size;
+        fread(dataLectura->buffer,1,size,fp);
+        }
+      return (void *) dataLectura;
+    }
+
     /*
       Lee desde una ruta un fichero y lo muestra por pantalla
       11 LOC
     */
-    int leer (char * path) {
+    int leerDebug (char * path) {
       char c;
       FILE * fp = NULL;
       fp = fopen(path,"r");
@@ -130,35 +148,32 @@ int writeLine(int s, char *line, int total_size) {
       Concatena la uri del cliente con el path simbólico donde se
       encuentra la carpeta que contiene los ficheros html y demás.
       23 LOC
-    */
-    void openAndReadFile(char * uri, char * root) {
-      FILE * fp = NULL;
-      char * fullPath = NULL;
-      char * path = NULL;
-      char * uri2 = NULL;
-      int a,b;
 
-      if (strcmp(uri,"/")==0) {
-        leer("./root/index.html");
-      } else {
-        a = strlen(substr(uri,1,strlen(uri)-1));
-        uri2 = malloc(sizeof(char)*a);
-        strcpy(uri2,substr(uri,1,strlen(uri)-1));
-        b = strlen(root);
-        path = malloc(sizeof(char)*b);
-        strcpy(path,root);
-        fullPath = malloc(sizeof(char)*a+b);
-        sprintf(fullPath,"%s%s",path,uri2);
-        printf("%s\n",fullPath);
-        int c = leer(fullPath);
-        printf("%d\n",c);
-        if (c == -1) {
-          printf ("Error 404");
-        }
-          //Error 404
-      }
-      free(path); free(uri2); free(fullPath);
-    }
+    */
+
+void * openAndReadFile(char * uri, char *root) {
+  char * fullPath = NULL;
+  char * path = NULL;
+  char * uri2 = NULL;
+  int a,b;
+  void * aux;
+
+  if (strcmp(uri,"/")==0) {
+    aux = leer("./root/index.html");
+  } else {
+    a = strlen(substr(uri,1,strlen(uri)-1));
+    uri2 = malloc(sizeof(char)*a);
+    strcpy(uri2,substr(uri,1,strlen(uri)-1));
+    b = strlen(root);
+    path = malloc(sizeof(char)*b);
+    strcpy(path,root);
+    fullPath = malloc(sizeof(char)*a+b);
+    sprintf(fullPath,"%s%s",path,uri2);
+    aux = leer(fullPath);
+  }
+  free(path); free(uri2); free(fullPath);
+  return aux;
+}
 
 
     /*
@@ -168,15 +183,41 @@ int writeLine(int s, char *line, int total_size) {
       buscar en el directorio raíz los recursos que se piden.
       9 LOC
     */
-    void HTTPGET (char * command) {
+    void * HTTPGET (char * command) {
       char * uri = NULL;
       char * linea = NULL;
-      int http_command_size = 0, command_size = 0, proto_size = 9;
+      void * aux;
+      int http_command_size = 0, proto_size = 9;
       char * root = "./root/";
       linea = substrUntilChar(command,'\r');
       http_command_size = strlen("GET ");//Tamaño del comando http
       uri = substr(linea,http_command_size,strlen(linea)-http_command_size-proto_size);
-      openAndReadFile(uri,root);
+      aux = openAndReadFile(uri,root);
+      return aux;
+    }
+
+    void configurarHeader(struct cabecera * header, struct data * dataLectura) {
+      if (dataLectura->status == not_found) {
+        header->resultado = malloc(sizeof(char)*30);
+        sprintf(header->resultado,"HTTP/1.0 %u Not found\r\n",dataLectura->status);
+        header->server = "Server: Mac OS X PA_Server\r\n";
+        header->content_type= "Content-Type: text/html\r\n";
+        header->content_length = malloc(sizeof(char)*6);
+        sprintf(header->content_length,"Content-Length: %d\r\n",dataLectura->size);
+        header->cuerpo = malloc(sizeof(char *)*dataLectura->size);
+        sprintf(header->cuerpo,"%s\r\n",dataLectura->buffer);
+      }
+      if (dataLectura->status == ok) {
+        header->resultado = malloc(sizeof(char)*30);
+        sprintf(header->resultado,"HTTP/1.0 %u ok\r\n",dataLectura->status);
+        header->server = "Server: Mac OS X PA_Server\r\n";
+        header->content_type= "Content-Type: text/html\r\n";
+        header->content_length = malloc(sizeof(char)*6);
+        sprintf(header->content_length,"Content-Length: %d\r\n",dataLectura->size);
+        header->cuerpo = malloc(sizeof(char *)*dataLectura->size);
+        sprintf(header->cuerpo,"%s\r\n",dataLectura->buffer);
+      //  free(dataLectura->buffer);//OJO
+      }
     }
 
     /*
@@ -185,37 +226,50 @@ int writeLine(int s, char *line, int total_size) {
       a ejecutar.
       6 LOC
     */
-    void commandExecutor(int value, char * command) {
+    void * commandExecutor(int value, char * command) {
+      struct cabecera * header = malloc(sizeof(struct cabecera));
+      struct data * dataLectura;
 
       switch (value) {
         case 0://GET
-        HTTPGET(command);
+        dataLectura = HTTPGET(command);
+        configurarHeader(header,dataLectura);
          break;
         case 1: printf("%s\n","Ejecutar pasos de PUT");break;
         case 2: printf("%s\n","Ejecutar pasos de POST");break;
         case 3: printf("%s\n","Ejecutar pasos de HEAD");break;
       }
+      return (void *) header;
     }
 /*********FIN*DESARROLLO***********/
 
 int serve(int s) {
-    char command[MSGSIZE];
-    int size, r, nlc = 0, fd, read_bytes, operacion;
+    char command[MSGSIZE*2];
+    int size, r, nlc = 0, fd, read_bytes, operacion, i=0;
+    struct cabecera * response;
+
     // Lee lo que pide el cliente
     while(1) {
         r = readLine(s, command, &size);
 
+        /**************DESARROLLO***************/
+        /*=========================================*/
+        if (i==0) {
+          operacion = commandParser(command);
+          response = commandExecutor(operacion, command);
+          writeLine(s,response->resultado,strlen(response->resultado));
+          writeLine(s,response->server,strlen(response->server));
+          writeLine(s,response->content_type,strlen(response->content_type));
+          writeLine(s,response->content_length,strlen(response->content_length));
+          writeLine(s,response->cuerpo,strlen(response->cuerpo));
+        }
+        /*=========================================*/
+
+        /*********FIN*DESARROLLO***********/
+
+
         command[size-2] = 0;
         size-=2;
-
-/**************DESARROLLO***************/
-/*=========================================*/
-          operacion = commandParser(command);
-          commandExecutor(operacion, command);
-/*=========================================*/
-
-/*********FIN*DESARROLLO***********/
-
         if(command[size-1] == '\n' && command[size-2] == '\r') {
             break;
         }
@@ -224,10 +278,13 @@ int serve(int s) {
     	if(strlen(command) == 0) {
     	    break;
     	}
-      */
+      */i++;
     }
     sleep(1);
 
+
+
+/*
     sprintf(command, "HTTP/1.0 200 OK\r\n");
     writeLine(s, command, strlen(command));
 
@@ -242,7 +299,7 @@ int serve(int s) {
 
     sprintf(command, "\r\n");
     writeLine(s, command, strlen(command));
-/*
+
     FILE *fin = fopen("mainiso_forcampus.jpg", "r");
 	FILE *fout = fdopen(s, "w");
 
