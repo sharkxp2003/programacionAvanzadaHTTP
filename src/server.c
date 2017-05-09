@@ -54,7 +54,9 @@ int writeLine(int s, char *line, int total_size) {
 
 
     /*
-
+      Devuelve en forma de char * la extensión de un fichero. Realiza el
+      substring hasta la primera ocurrencia de un . empezando desde el final.
+      7 LOC
     */
     char * strext(char * string) {
       int size = 0;
@@ -66,7 +68,11 @@ int writeLine(int s, char *line, int total_size) {
       return NULL;
     }
 
-
+    /*
+      A través de una extensión de fichero se busca en un vector la
+      equivalencia a su descripción MIME.
+      6 LOC
+    */
     char * fetchMIME(char * extension) {
       int i=0;
       char * mime = malloc(sizeof(char)*40);
@@ -107,7 +113,7 @@ int writeLine(int s, char *line, int total_size) {
 
     /*
     Devuelve el substring hasta la primera aparición del
-    carácter c en el char * string
+    carácter c en el char * string.
     5 LOC
     */
     char * substrUntilChar(char * string, char c) {
@@ -119,7 +125,12 @@ int writeLine(int s, char *line, int total_size) {
     }
 
     /*
-      24 LOC
+      Lee un fichero solicitado a través de una peticion al webserver
+      y lo aloja en la estrctura de datos 'struct data' para
+      que sea procesado. En caso de que no se encuentre el recurso se
+      accede a un fichero html de 404 not found.
+
+      30 LOC
     */
     void * leer (char * path) {
       int size;
@@ -135,14 +146,9 @@ int writeLine(int s, char *line, int total_size) {
         rewind(fp);
         dataLectura->buffer = malloc(sizeof(char)*size);
         dataLectura->size = size;
-        if (strcmp(dataLectura->extension,"image/jpeg") == 0) {
-          //fread(dataLectura->buffer,1,size,fp);
-
-
-
-        } else fread(dataLectura->buffer,1,size-1,fp);
+        fread(dataLectura->buffer,1,size,fp);
         dataLectura->status = ok;
-
+        dataLectura->extension = malloc(sizeof(char)*4);
         sprintf(dataLectura->extension,"%s",fetchMIME(strext(path)));
         fclose(fp);
      } else {
@@ -153,6 +159,7 @@ int writeLine(int s, char *line, int total_size) {
         rewind(fp);
         dataLectura->buffer = malloc(sizeof(char)*size);
         dataLectura->size = size;
+        dataLectura->extension = malloc(sizeof(char)*4);
         sprintf(dataLectura->extension,"%s",fetchMIME(strext("./root/cabecerasHTTP/not_found.html")));
         fread(dataLectura->buffer,1,size,fp);
         }
@@ -183,7 +190,8 @@ int writeLine(int s, char *line, int total_size) {
 
     */
 /*
-
+  Genera el path a través de la URI solicitada por el cliente y el directorio
+  root del webserver. Acciona el metodo leer.
   20 LOC
 */
 void * openAndReadFile(char * uri, char *root) {
@@ -231,7 +239,9 @@ void * openAndReadFile(char * uri, char *root) {
       return aux;
     }
     /*
-      19 LOC
+      Dadas unas estructuras de datos configura la cabecera HTTP dependiendo
+      de las solicitudes.
+      21 LOC
     */
     void configurarHeader(struct cabecera * header, struct data * dataLectura) {
       if (dataLectura->status == not_found) {
@@ -242,7 +252,7 @@ void * openAndReadFile(char * uri, char *root) {
         sprintf(header->content_type,"Content-Type: %s\r\n",dataLectura->extension);
         header->content_length = malloc(sizeof(char)*6);
         sprintf(header->content_length,"Content-Length: %d\r\n",dataLectura->size);
-        header->cuerpo = malloc(sizeof(char *)*dataLectura->size);
+        header->cuerpo = malloc(sizeof(char)*dataLectura->size);
         sprintf(header->cuerpo,"%s\r\n",dataLectura->buffer);
       }
       if (dataLectura->status == ok) {
@@ -253,10 +263,9 @@ void * openAndReadFile(char * uri, char *root) {
         sprintf(header->content_type,"Content-Type: %s\r\n",dataLectura->extension);
         header->content_length = malloc(sizeof(char)*6);
         sprintf(header->content_length,"Content-Length: %d\r\n",dataLectura->size);
+        header->cuerpo = malloc(sizeof(char)*dataLectura->size);
         memcpy(header->cuerpo,dataLectura->buffer,dataLectura->size);
-        //header->cuerpo = malloc(sizeof(char *)*dataLectura->size);
-        //sprintf(header->cuerpo,"%s\r\n",dataLectura->buffer);
-      //  free(dataLectura->buffer);//OJO
+
       }
     }
 
@@ -278,9 +287,7 @@ void * openAndReadFile(char * uri, char *root) {
         printf("%s",header->content_type);
         printf("%s",header->content_length);
         printf("%s",header->cuerpo);
-        //char * prueba = malloc(sizeof(char)*100);
-        //sprintf(prueba,"%s",strext("./root/cabecerasHTTP/not_found.jpeg"));
-        //printf("%s\n",fetchMIME(prueba));
+
          break;
         case 1: printf("%s\n","Ejecutar pasos de PUT");break;
         case 2: printf("%s\n","Ejecutar pasos de POST");break;
@@ -325,7 +332,6 @@ int serve(int s) {
     writeLine(s,"\r\n",strlen("\r\n"));
     if (strcmp(response->content_type,"Content-Type: image/jpeg\r\n") == 0) {
       FILE *fin = fopen("./root/imagen.jpeg","r");
-      FILE *fout = fdopen(s, "w");
       char file[65340];
       int suma = 0;
       size = fread(file, 1,65340, fin);
@@ -338,45 +344,6 @@ int serve(int s) {
         writeLine(s,response->cuerpo,strlen(response->cuerpo));
 
   }
-
-
-
-/*
-    sprintf(command, "HTTP/1.0 200 OK\r\n");
-    writeLine(s, command, strlen(command));
-
-    sprintf(command, "Date: Fri, 31 Dec 1999 23:59:59 GMT\r\n");
-    writeLine(s, command, strlen(command));
-
-    sprintf(command, "Content-Type: image/jpeg\r\n");
-    writeLine(s, command, strlen(command));
-
-    sprintf(command, "Content-Length: 29936\r\n");
-    writeLine(s, command, strlen(command));
-
-    sprintf(command, "\r\n");
-    writeLine(s, command, strlen(command));
-
-    FILE *fin = fopen("mainiso_forcampus.jpg", "r");
-	FILE *fout = fdopen(s, "w");
-
-	struct stat buf;
-
-	stat("mainiso?forcampus.jpg", &buf);
-	printf("Size -----------> %d\n", buf.st_size);
-
-	char file[32*1024];
-	int suma = 0;
-	size = fread(file, 1, 29936, fin);
-	printf("Archivo: %d\n", size);
-
-    while( (size=write(s, &file[suma], MSGSIZE)) > 0) {
-		suma += size;
-		if (suma >= 29936) break;
-	}
-*/
-
-
     sync();
 }
 
